@@ -41,31 +41,31 @@ st.markdown("""
 # LISTA AMPLIADA DE ACCIONES VALUE (100+ TICKERS)
 # ============================================================================
 VALUE_TICKERS = [
-    # BANCOS Y FINANZAS (típicamente value)
+    # BANCOS Y FINANZAS
     'JPM', 'BAC', 'WFC', 'C', 'USB', 'PNC', 'TFC', 'COF', 'BK', 'STT',
     'MTB', 'FITB', 'HBAN', 'RF', 'CFG', 'KEY', 'ZION', 'CMA', 'NTRS', 'SCHW',
     
-    # ENERGÍA (alto FCF, bajos múltiplos)
+    # ENERGÍA
     'CVX', 'XOM', 'COP', 'EOG', 'SLB', 'OXY', 'MRO', 'DVN', 'HAL', 'BKR',
     'PXD', 'FANG', 'APA', 'HES', 'VLO', 'PSX', 'MPC', 'OKE', 'WMB', 'KMI',
     
-    # INDUSTRIALES (value clásico)
+    # INDUSTRIALES
     'GE', 'CAT', 'BA', 'HON', 'MMM', 'DE', 'EMR', 'ETN', 'ITW', 'ROK',
     'PH', 'CMI', 'FDX', 'UPS', 'WM', 'RSG', 'NUE', 'STLD', 'X', 'CLF',
     
-    # CONSUMO BÁSICO (defensivas value)
+    # CONSUMO BÁSICO
     'KO', 'PEP', 'WMT', 'TGT', 'COST', 'KR', 'SYY', 'GIS', 'K', 'CPB',
     'CAG', 'SJM', 'HSY', 'MKC', 'CLX', 'CHD', 'EL', 'MDLZ', 'MNST', 'KHC',
     
-    # SALUD/FARMA (algunas son value)
+    # SALUD/FARMA
     'PFE', 'JNJ', 'MRK', 'ABBV', 'BMY', 'GILD', 'CVS', 'UNH', 'CI', 'HUM',
     'MCK', 'CAH', 'ABC', 'ZBH', 'BSX', 'MDT', 'SYK', 'BDX', 'EW', 'HOLX',
     
-    # TELECOM/UTILITIES (altos dividendos, value)
+    # TELECOM/UTILITIES
     'VZ', 'T', 'TMUS', 'D', 'SO', 'DUK', 'NEE', 'AEP', 'EXC', 'XEL',
     'ED', 'EIX', 'WEC', 'ES', 'AWK', 'ATO', 'CMS', 'DTE', 'NI', 'LNT',
     
-    # AUTOMOTRIZ Y OTROS VALUE
+    # AUTOMOTRIZ Y OTROS
     'F', 'GM', 'STLA', 'HMC', 'TM', 'RACE', 'APTV', 'BWA', 'LEA', 'VC',
     'IBM', 'INTC', 'HPQ', 'CSCO', 'QCOM', 'TXN', 'ADI', 'MCHP', 'KLAC', 'AMAT',
     
@@ -73,7 +73,7 @@ VALUE_TICKERS = [
     'BRK.B', 'AIG', 'MET', 'PRU', 'ALL', 'TRV', 'PGR', 'CB', 'AFL', 'HIG',
     'SPG', 'O', 'WELL', 'AVB', 'EQR', 'VTR', 'ARE', 'DLR', 'PSA', 'AMT',
     
-    # RETAIL VALUE
+    # RETAIL
     'HD', 'LOW', 'DG', 'DLTR', 'ROST', 'TJX', 'BBY', 'GPS', 'M', 'KSS'
 ]
 
@@ -97,24 +97,11 @@ def calculate_financial_ratios(ticker):
         market_cap = info.get('marketCap') or 0
         enterprise_value = info.get('enterpriseValue') or market_cap
         
-        # --- INCOME STATEMENT (último año) ---
-        try:
-            financials = stock.financials
-            income_stmt = stock.get_income_stmt()
-            balance_sheet = stock.get_balance_sheet()
-            cashflow = stock.get_cashflow_stmt()
-        except:
-            financials = None
-            income_stmt = None
-            balance_sheet = None
-            cashflow = None
-        
         # --- CÁLCULO DE RATIOS ---
         
         # 1. PER (Price to Earnings)
         pe_ratio = info.get('trailingPE')
         if not pe_ratio or pe_ratio <= 0:
-            # Calcular manualmente: Price / EPS
             eps = info.get('trailingEps')
             if eps and eps > 0:
                 pe_ratio = price / eps
@@ -122,16 +109,13 @@ def calculate_financial_ratios(ticker):
         # 2. P/B (Price to Book)
         pb_ratio = info.get('priceToBook')
         if not pb_ratio or pb_ratio <= 0:
-            # Calcular manualmente: Market Cap / Book Value
             book_value = info.get('bookValue')
-            shares = info.get('sharesOutstanding')
-            if book_value and shares:
+            if book_value and book_value > 0:
                 pb_ratio = price / book_value
         
         # 3. EV/EBITDA
         ev_ebitda = info.get('enterpriseToEbitda')
         if not ev_ebitda or ev_ebitda <= 0:
-            # Calcular manualmente si tenemos EBITDA
             ebitda = info.get('ebitda')
             if ebitda and ebitda > 0 and enterprise_value > 0:
                 ev_ebitda = enterprise_value / ebitda
@@ -139,7 +123,6 @@ def calculate_financial_ratios(ticker):
         # 4. ROE (Return on Equity)
         roe = info.get('returnOnEquity')
         if not roe:
-            # Calcular manualmente: Net Income / Shareholder Equity
             net_income = info.get('netIncomeToCommon')
             equity = info.get('totalStockholderEquity')
             if net_income and equity and equity > 0:
@@ -150,18 +133,16 @@ def calculate_financial_ratios(ticker):
         operating_cash_flow = info.get('operatingCashflow')
         capex = info.get('capitalExpenditures')
         
-        # Si no hay FCF directo, calcularlo: OCF - CapEx
         if not fcf and operating_cash_flow and capex:
             fcf = operating_cash_flow + capex  # CapEx viene negativo en Yahoo
         
         fcf_yield = None
-        if fcf and market_cap > 0:
+        if fcf and market_cap and market_cap > 0:
             fcf_yield = (fcf / market_cap) * 100
         
         # 6. Debt to Equity
         debt_to_equity = info.get('debtToEquity')
         if not debt_to_equity:
-            # Calcular manualmente
             total_debt = info.get('totalDebt')
             equity = info.get('totalStockholderEquity')
             if total_debt and equity and equity > 0:
@@ -177,45 +158,43 @@ def calculate_financial_ratios(ticker):
         # 8. Dividend Yield
         dividend_yield = info.get('dividendYield')
         if dividend_yield:
-            dividend_yield = dividend_yield * 100  # Convertir a porcentaje
+            dividend_yield = dividend_yield * 100
         
         # 9. Payout Ratio
         payout_ratio = info.get('payoutRatio')
         if payout_ratio:
             payout_ratio = payout_ratio * 100
         
-        # 10. Current Ratio (liquidez)
+        # 10. Current Ratio
         current_ratio = info.get('currentRatio')
         
-        # 11. Quick Ratio
-        quick_ratio = info.get('quickRatio')
-        
-        # 12. Profit Margin
+        # 11. Profit Margin
         profit_margin = info.get('profitMargins')
         if profit_margin:
             profit_margin = profit_margin * 100
         
-        # 13. Beta
+        # 12. Beta
         beta = info.get('beta')
-        
-        # 14. 52 Week Range
-        week_range = f"{low_52:.2f} - {high_52:.2f}" if low_52 and high_52 else "N/A"
         
         # Nombre de la empresa
         company_name = info.get('shortName') or info.get('longName') or ticker
         sector = info.get('sector', 'N/A')
         industry = info.get('industry', 'N/A')
         
+        # Contar datos completos
+        data_points = [pe_ratio, pb_ratio, ev_ebitda, roe, fcf_yield, debt_to_equity]
+        complete_data = sum(1 for x in data_points if x is not None and x > 0)
+        
         return {
             'Ticker': ticker,
             'Nombre': company_name,
             'Sector': sector,
             'Industria': industry,
-            'Precio': round(price, 2),
+            'Precio': round(price, 2) if price else None,
             'Market Cap (B)': round(market_cap / 1e9, 2) if market_cap else None,
-            'PER': round(pe_ratio, 2) if pe_ratio else None,
-            'P/B': round(pb_ratio, 2) if pb_ratio else None,
-            'EV/EBITDA': round(ev_ebitda, 2) if ev_ebitda else None,
+            'PER': round(pe_ratio, 2) if pe_ratio and pe_ratio > 0 else None,
+            'P/B': round(pb_ratio, 2) if pb_ratio and pb_ratio > 0 else None,
+            'EV/EBITDA': round(ev_ebitda, 2) if ev_ebitda and ev_ebitda > 0 else None,
             'ROE (%)': round(roe * 100, 2) if roe else None,
             'FCF Yield (%)': round(fcf_yield, 2) if fcf_yield else None,
             'Deuda/Patrimonio': round(debt_to_equity, 2) if debt_to_equity else None,
@@ -225,11 +204,8 @@ def calculate_financial_ratios(ticker):
             'Current Ratio': round(current_ratio, 2) if current_ratio else None,
             'Profit Margin (%)': round(profit_margin, 2) if profit_margin else None,
             'Beta': round(beta, 2) if beta else None,
-            '52 Week Range': week_range,
-            'Datos Completos': sum([
-                pe_ratio is not None, pb_ratio is not None, ev_ebitda is not None,
-                roe is not None, fcf_yield is not None, debt_to_equity is not None
-            ]) / 6  # Porcentaje de datos completos
+            '52 Week Range': f"{low_52:.2f} - {high_52:.2f}" if low_52 and high_52 else "N/A",
+            'Datos Completos': complete_data / 6
         }
         
     except Exception as e:
@@ -239,7 +215,7 @@ def calculate_financial_ratios(ticker):
 # FUNCIÓN PRINCIPAL DE ANÁLISIS
 # ============================================================================
 
-@st.cache_data(ttl=7200)  # Cache por 2 horas
+@st.cache_data(ttl=7200)
 def analyze_stocks(tickers, show_progress=True):
     """
     Analiza todas las acciones y devuelve DataFrame con resultados.
@@ -249,14 +225,13 @@ def analyze_stocks(tickers, show_progress=True):
     if show_progress:
         progress_bar = st.progress(0)
         status_text = st.empty()
-        progress_container = st.container()
     
     for i, ticker in enumerate(tickers):
         try:
             data = calculate_financial_ratios(ticker)
-            if data and data['Datos Completos'] >= 0.5:  # Al menos 50% de datos
+            if data and data['Datos Completos'] >= 0.5:
                 results.append(data)
-        except Exception as e:
+        except Exception:
             continue
         
         if show_progress:
@@ -281,18 +256,18 @@ Esta aplicación escanea el mercado buscando **empresas infravaloradas** según 
 """)
 
 # ============================================================================
-# PANEL LATERAL - CONFIGURACIÓN DE FILTROS
+# PANEL LATERAL - CONFIGURACIÓN DE FILTROS (CORREGIDO)
 # ============================================================================
 
 st.sidebar.header("⚙️ Criterios de Value Investing")
 st.sidebar.markdown("---")
 
-# Criterios principales (TUS REQUISITOS EXACTOS)
 st.sidebar.subheader("📊 Ratios Fundamentales")
 
+# ✅ TODOS LOS VALORES SON FLOATS PARA EVITAR ERRORES
 filter_per = st.sidebar.slider(
     "PER (P/E) máximo",
-    min_value=1, max_value=50, value=15,
+    min_value=1.0, max_value=50.0, value=15.0, step=1.0,
     help="Price to Earnings. Menor = más barato. Value: < 15"
 )
 
@@ -304,47 +279,47 @@ filter_pb = st.sidebar.slider(
 
 filter_ev_ebitda = st.sidebar.slider(
     "EV/EBITDA máximo",
-    min_value=1, max_value=50, value=10,
+    min_value=1.0, max_value=50.0, value=10.0, step=1.0,
     help="Enterprise Value sobre EBITDA. Value: < 10"
 )
 
 filter_roe = st.sidebar.slider(
     "ROE mínimo (%)",
-    min_value=0, max_value=50, value=10,
+    min_value=0.0, max_value=50.0, value=10.0, step=1.0,
     help="Return on Equity. Rentabilidad sobre patrimonio. Value: > 10%"
 )
 
 filter_fcf = st.sidebar.slider(
     "FCF Yield mínimo (%)",
-    min_value=0, max_value=20, value=5,
+    min_value=0.0, max_value=20.0, value=5.0, step=0.5,
     help="Free Cash Flow Yield. Flujo de caja libre sobre precio. Value: > 5%"
 )
 
+# ✅ CORREGIDO: min_value=0.0 (float) en lugar de 0 (int)
 filter_de = st.sidebar.slider(
     "Deuda/Patrimonio máximo",
-    min_value=0, max_value=5.0, value=1.0, step=0.1,
+    min_value=0.0, max_value=5.0, value=1.0, step=0.1,
     help="Debt to Equity. Apalancamiento. Value: < 1"
 )
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("🎯 Filtros Adicionales")
 
-# Filtros opcionales
 min_market_cap = st.sidebar.number_input(
     "Market Cap mínimo (miles de millones $)",
-    min_value=0, max_value=1000, value=1,
+    min_value=0.0, max_value=1000.0, value=1.0, step=0.5,
     help="Evitar empresas demasiado pequeñas"
 )
 
 min_dividend_yield = st.sidebar.number_input(
     "Dividend Yield mínimo (%)",
-    min_value=0, max_value=15, value=0,
+    min_value=0.0, max_value=15.0, value=0.0, step=0.5,
     help="Solo empresas que paguen dividendos"
 )
 
 max_beta = st.sidebar.number_input(
     "Beta máximo (volatilidad)",
-    min_value=0, max_value=3, value=2,
+    min_value=0.0, max_value=3.0, value=2.0, step=0.1,
     help="Medida de volatilidad vs mercado"
 )
 
@@ -358,8 +333,8 @@ enable_drop_filter = st.sidebar.checkbox(
 )
 
 if enable_drop_filter:
-    min_drop = st.sidebar.slider("Caída mínima desde máximos (%)", 10, 80, 30)
-    max_drop = st.sidebar.slider("Caída máxima desde máximos (%)", 10, 80, 50)
+    min_drop = st.sidebar.slider("Caída mínima desde máximos (%)", 10.0, 80.0, 30.0, step=5.0)
+    max_drop = st.sidebar.slider("Caída máxima desde máximos (%)", 10.0, 80.0, 50.0, step=5.0)
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("🔧 Opciones")
@@ -372,7 +347,7 @@ relax_mode = st.sidebar.checkbox(
 
 min_data_completeness = st.sidebar.slider(
     "Datos completos mínimos (%)",
-    min_value=30, max_value=100, value=50,
+    min_value=30.0, max_value=100.0, value=50.0, step=10.0,
     help="Porcentaje mínimo de ratios disponibles"
 )
 
@@ -399,7 +374,6 @@ if clear_cache:
 if analyze_button:
     with st.spinner('📊 Analizando ' + str(len(VALUE_TICKERS)) + ' acciones... Esto puede tardar 2-3 minutos.'):
         
-        # Análisis completo
         df = analyze_stocks(VALUE_TICKERS)
         
         if df.empty:
@@ -410,13 +384,9 @@ if analyze_button:
         # APLICACIÓN DE FILTROS
         # ====================================================================
         
-        # Filtro de calidad de datos
         df = df[df['Datos Completos'] >= (min_data_completeness / 100)].copy()
-        
-        # Filtro de Market Cap
         df = df[df['Market Cap (B)'] >= min_market_cap].copy()
         
-        # Filtros principales de Value
         mask_value = (
             (df['PER'].notna()) & (df['PER'] <= filter_per) &
             (df['P/B'].notna()) & (df['P/B'] <= filter_pb) &
@@ -428,14 +398,11 @@ if analyze_button:
         if not relax_mode:
             mask_value = mask_value & (df['FCF Yield (%)'].notna()) & (df['FCF Yield (%)'] >= filter_fcf)
         
-        # Filtro de dividendos
         if min_dividend_yield > 0:
             mask_value = mask_value & (df['Dividend Yield (%)'].notna()) & (df['Dividend Yield (%)'] >= min_dividend_yield)
         
-        # Filtro de beta
         mask_value = mask_value & (df['Beta'].notna()) & (df['Beta'] <= max_beta)
         
-        # Filtro de caída
         if enable_drop_filter:
             mask_value = mask_value & (
                 (df['Caída desde Max 52s (%)'].notna()) &
@@ -445,28 +412,21 @@ if analyze_button:
         
         df_filtered = df[mask_value].copy()
         
-        # Calcular Score Value (combinación de todos los ratios)
-        # Score más alto = mejor oportunidad value
+        # Calcular Score Value
         df_filtered = df_filtered.copy()
         
         def calculate_value_score(row):
             score = 0
-            # PER más bajo = mejor
             if row['PER'] and row['PER'] > 0:
                 score += (15 / row['PER']) * 25
-            # P/B más bajo = mejor
             if row['P/B'] and row['P/B'] > 0:
                 score += (1.5 / row['P/B']) * 20
-            # EV/EBITDA más bajo = mejor
             if row['EV/EBITDA'] and row['EV/EBITDA'] > 0:
                 score += (10 / row['EV/EBITDA']) * 20
-            # ROE más alto = mejor
             if row['ROE (%)']:
                 score += (row['ROE (%)'] / 10) * 20
-            # FCF Yield más alto = mejor
             if row['FCF Yield (%)']:
                 score += (row['FCF Yield (%)'] / 5) * 15
-            # Deuda más baja = mejor
             if row['Deuda/Patrimonio']:
                 score += max(0, (1 - row['Deuda/Patrimonio'])) * 10
             return score
@@ -478,7 +438,6 @@ if analyze_button:
         # MOSTRAR RESULTADOS
         # ====================================================================
         
-        # RESUMEN EJECUTIVO
         st.markdown("---")
         st.subheader("📊 Resumen del Análisis")
         
@@ -503,7 +462,6 @@ if analyze_button:
         if not df_filtered.empty:
             top5 = df_filtered.head(5)
             
-            # Mostrar tarjetas con información detallada
             for idx, row in top5.iterrows():
                 with st.container():
                     col1, col2, col3 = st.columns([2, 3, 2])
@@ -521,11 +479,10 @@ if analyze_button:
                         cols[0].metric("ROE", f"{row['ROE (%)']:.1f}%" if row['ROE (%)'] else "N/A")
                         cols[1].metric("FCF Yield", f"{row['FCF Yield (%)']:.1f}%" if row['FCF Yield (%)'] else "N/A")
                     
-                    st.markdown(f"**Value Score:** {row['Value Score']:.1f}/100 | **Precio:** ${row['Precio']:.2f} | **Caída 52s:** {row['Caída desde Max 52s (%)']:.1f}%" if row['Caída desde Max 52s (%)'] else "N/A")
+                    drop_text = f"{row['Caída desde Max 52s (%)']:.1f}%" if row['Caída desde Max 52s (%)'] else "N/A"
+                    st.markdown(f"**Value Score:** {row['Value Score']:.1f}/100 | **Precio:** ${row['Precio']:.2f} | **Caída 52s:** {drop_text}")
                     st.divider()
             
-            # Tabla completa del Top 5
-            st.markdown("### 📋 Tabla Detallada")
             display_cols = [
                 'Ticker', 'Nombre', 'Precio', 'PER', 'P/B', 'EV/EBITDA',
                 'ROE (%)', 'FCF Yield (%)', 'Deuda/Patrimonio', 'Dividend Yield (%)',
@@ -549,11 +506,10 @@ if analyze_button:
             - ✅ Activar **Modo Relajado** en el panel lateral
             - ✅ Aumentar ligeramente PER (18-20) o P/B (2.0)
             - ✅ Reducir FCF Yield mínimo (3-4%)
-            - ✅ Revisar la sección de análisis de filtros abajo
             """)
         
         # ====================================================================
-        # TOP 5 ACCIONES CAÍDAS (OPORTUNIDADES DE COMPRA)
+        # TOP 5 ACCIONES CAÍDAS
         # ====================================================================
         
         st.markdown("---")
@@ -561,7 +517,6 @@ if analyze_button:
         st.caption("Empresas value que han caído significativamente pero mantienen fundamentales sólidos")
         
         if not df_filtered.empty:
-            # Filtrar por caída entre 30-50%
             mask_drop = (
                 (df_filtered['Caída desde Max 52s (%)'].notna()) &
                 (df_filtered['Caída desde Max 52s (%)'] >= 30) &
@@ -587,19 +542,12 @@ if analyze_button:
                     use_container_width=True
                 )
             else:
-                st.info("""
-                ℹ️ **No hay acciones con caída 30-50% que cumplan los criterios value.**
-                
-                Posibles razones:
-                - Las acciones value ya están baratas y no caen tanto
-                - Las que caen tanto suelen tener problemas fundamentales
-                - Prueba ampliar el rango de caída (20-60%)
-                """)
+                st.info("ℹ️ **No hay acciones con caída 30-50% que cumplan los criterios value.**")
         else:
             st.caption("Primero deben aparecer acciones en el Top 1 para filtrar por caída.")
         
         # ====================================================================
-        # ANÁLISIS DE FILTROS (DEBUG)
+        # ANÁLISIS DE FILTROS
         # ====================================================================
         
         st.markdown("---")
@@ -617,7 +565,6 @@ if analyze_button:
                 ("**TODOS LOS FILTROS**", len(df_filtered))
             ]
             
-            # Crear DataFrame para visualización
             df_filters = pd.DataFrame(filters_breakdown, columns=['Filtro', 'Acciones que pasan'])
             df_filters['% del Total'] = (df_filters['Acciones que pasan'] / len(df) * 100).round(1)
             
@@ -627,72 +574,13 @@ if analyze_button:
                 use_container_width=True
             )
             
-            # Gráfico de barras
             st.bar_chart(df_filters.set_index('Filtro')['Acciones que pasan'])
-            
-            st.markdown("### 🎯 Acciones que casi pasan (fallan en solo 1-2 criterios)")
-            
-            almost_there = []
-            for _, row in df.iterrows():
-                fails = 0
-                fail_reasons = []
-                
-                if pd.isna(row['PER']) or row['PER'] > filter_per:
-                    fails += 1
-                    fail_reasons.append(f"PER {row['PER']:.1f}" if row['PER'] else "PER N/A")
-                
-                if pd.isna(row['P/B']) or row['P/B'] > filter_pb:
-                    fails += 1
-                    fail_reasons.append(f"P/B {row['P/B']:.1f}" if row['P/B'] else "P/B N/A")
-                
-                if pd.isna(row['EV/EBITDA']) or row['EV/EBITDA'] > filter_ev_ebitda:
-                    fails += 1
-                    fail_reasons.append(f"EV/EBITDA {row['EV/EBITDA']:.1f}" if row['EV/EBITDA'] else "EV/EBITDA N/A")
-                
-                if pd.isna(row['ROE (%)']) or row['ROE (%)'] < filter_roe:
-                    fails += 1
-                    fail_reasons.append(f"ROE {row['ROE (%)']:.1f}%" if row['ROE (%)'] else "ROE N/A")
-                
-                if not relax_mode and (pd.isna(row['FCF Yield (%)']) or row['FCF Yield (%)'] < filter_fcf):
-                    fails += 1
-                    fail_reasons.append(f"FCF {row['FCF Yield (%)']:.1f}%" if row['FCF Yield (%)'] else "FCF N/A")
-                
-                if pd.isna(row['Deuda/Patrimonio']) or row['Deuda/Patrimonio'] > filter_de:
-                    fails += 1
-                    fail_reasons.append(f"D/E {row['Deuda/Patrimonio']:.1f}" if row['Deuda/Patrimonio'] else "D/E N/A")
-                
-                if fails <= 2 and row['Datos Completos'] >= 0.5:
-                    row_data = row.to_dict()
-                    row_data['Fallas'] = fails
-                    row_data['Motivos'] = ", ".join(fail_reasons)
-                    almost_there.append(row_data)
-            
-            if almost_there:
-                df_almost = pd.DataFrame(almost_there).head(15)
-                st.dataframe(
-                    df_almost[['Ticker', 'Nombre', 'PER', 'P/B', 'EV/EBITDA', 'ROE (%)', 'FCF Yield (%)', 'Deuda/Patrimonio', 'Fallas', 'Motivos']],
-                    hide_index=True,
-                    use_container_width=True
-                )
-            else:
-                st.caption("Ninguna acción está cerca de cumplir todos los criterios.")
-        
-        # ====================================================================
-        # TODAS LAS ACCIONES FILTRADAS
-        # ====================================================================
-        
-        st.markdown("---")
-        with st.expander("📋 Ver todas las acciones que pasan los filtros"):
-            if not df_filtered.empty:
-                st.dataframe(df_filtered, hide_index=True, use_container_width=True)
-            else:
-                st.caption("No hay acciones filtradas para mostrar.")
         
         # ====================================================================
         # EXPORTAR DATOS
         # ====================================================================
         
-        if export_data or not df_filtered.empty:
+        if not df_filtered.empty:
             csv = df_filtered.to_csv(index=False, encoding='utf-8-sig')
             st.download_button(
                 label="📥 Descargar Resultados Completos (CSV)",
@@ -703,7 +591,7 @@ if analyze_button:
             )
         
         # ====================================================================
-        # RECOMENDACIONES FINALES
+        # RECOMENDACIONES
         # ====================================================================
         
         st.markdown("---")
@@ -712,59 +600,48 @@ if analyze_button:
         if not df_filtered.empty:
             st.markdown("""
             ### ✅ Acciones encontradas - Próximos pasos:
-            1. **Investigación adicional:** Estos ratios son solo el primer filtro. Revisa los estados financieros.
-            2. **Ventaja competitiva:** ¿Tiene la empresa un moat (ventaja duradera)?
-            3. **Gestión:** ¿Es el equipo directivo competente y honesto?
-            4. **Catalizadores:** ¿Hay algo que pueda hacer subir el precio?
-            5. **Margen de seguridad:** ¿El precio actual ofrece suficiente descuento al valor intrínseco?
+            1. **Investigación adicional:** Revisa los estados financieros completos.
+            2. **Ventaja competitiva:** ¿Tiene la empresa un moat duradero?
+            3. **Gestión:** ¿Es el equipo directivo competente?
+            4. **Margen de seguridad:** ¿El precio ofrece descuento al valor intrínseco?
             
             ### ⚠️ Advertencias:
-            - Los datos de Yahoo Finance pueden tener retraso de 15 minutos
-            - Los ratios financieros se actualizan trimestralmente
-            - **Esto NO es asesoramiento financiero.** Haz tu propia investigación (DYOR)
+            - Los datos pueden tener retraso de 15 minutos
+            - **Esto NO es asesoramiento financiero.** Haz tu propia investigación.
             """)
         else:
             st.markdown("""
             ### 🔍 No se encontraron oportunidades con estos criterios
             
-            **Posibles acciones:**
-            - Los criterios son muy estrictos (típico en mercados caros)
-            - Considera relajar algunos filtros temporalmente
-            - Amplía la lista de tickers a analizar
-            - Espera a correcciones del mercado para mejores oportunidades
-            
-            **Consejo Value:** La paciencia es clave. Mejor no invertir que invertir en empresas que no cumplen tus criterios.
+            **Consejo Value:** La paciencia es clave. Mejor no invertir que invertir en empresas 
+            que no cumplen tus criterios. Espera a mejores oportunidades del mercado.
             """)
 
 else:
-    # PANTALLA DE INICIO
     st.markdown("---")
-    st.info("👈 **Presiona el botón 'ANALIZAR ACCIONES VALUE'** para comenzar el escaneo del mercado.")
+    st.info("👈 **Presiona el botón 'ANALIZAR ACCIONES VALUE'** para comenzar el escaneo.")
     
     st.markdown("""
     ### 📚 Sobre Value Investing
     
-    **Value Investing** es la filosofía de inversión popularizada por **Benjamin Graham** y **Warren Buffett**.
-    Los principios básicos son:
-    
     | Principio | Descripción |
     |-----------|-------------|
     | 🎯 **Margen de Seguridad** | Comprar por debajo del valor intrínseco |
-    | 📊 **Análisis Fundamental** | Enfocarse en el negocio, no en el precio de la acción |
+    | 📊 **Análisis Fundamental** | Enfocarse en el negocio, no en el precio |
     | 🧠 **Mentalidad de Propietario** | Pensar como dueño del negocio |
-    | ⏰ **Paciencia** | El mercado es un mecanismo de votación a corto plazo, de pesaje a largo |
-    | 🛡️ **Protección de Capital** | Regla #1: No perder dinero. Regla #2: No olvidar la regla #1 |
+    | ⏰ **Paciencia** | El mercado vota a corto, pesa a largo |
+    | 🛡️ **Protección de Capital** | Regla #1: No perder dinero |
     
-    ### 📋 Criterios de esta App
+    ### 📋 Tus Criterios Value
     
-    | Ratio | Tu Criterio | Por qué es importante |
-    |-------|-------------|----------------------|
-    | **PER** | ≤ 15 | Indica que pagas poco por cada dólar de ganancias |
-    | **P/B** | ≤ 1.5 | La acción cotiza cerca o por debajo de su valor contable |
+    | Ratio | Tu Criterio | Importancia |
+    |-------|-------------|-------------|
+    | **PER** | ≤ 15 | Pagas poco por ganancias |
+    | **P/B** | ≤ 1.5 | Cotiza cerca de valor contable |
     | **EV/EBITDA** | ≤ 10 | Valoración empresarial atractiva |
-    | **ROE** | ≥ 10% | La empresa genera buen retorno sobre el patrimonio |
+    | **ROE** | ≥ 10% | Buena rentabilidad sobre patrimonio |
     | **FCF Yield** | ≥ 5% | Genera caja libre saludable |
-    | **Deuda/Patrimonio** | ≤ 1 | Bajo apalancamiento, menor riesgo |
+    | **Deuda/Patrimonio** | ≤ 1 | Bajo apalancamiento |
     """)
 
 # ============================================================================
@@ -773,8 +650,8 @@ else:
 
 st.markdown("---")
 st.caption("""
-⚠️ **Descargo de responsabilidad:** Esta herramienta es solo para fines educativos e informativos. 
+⚠️ **Descargo:** Esta herramienta es solo para fines educativos. 
 Los datos provienen de Yahoo Finance y pueden tener errores o retrasos. 
-**Esto NO es asesoramiento financiero.** Siempre haz tu propia investigación antes de invertir.
+**Esto NO es asesoramiento financiero.**
 
 📅 Última actualización: """ + datetime.now().strftime("%Y-%m-%d %H:%M"))
